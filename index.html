@@ -1,16 +1,13 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>D.H.L - Sistema de Detetives</title>
-    
-    <link rel="icon" type="image/png" href="favicon.png">
-    
-
     
     <script src="https://unpkg.com/docx@7.1.0/build/index.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <style>
         @font-face { font-family: 'Aloja'; src: url('Aloja.ttf'); }
@@ -22,17 +19,24 @@
             font-family: 'Aloja', sans-serif; overflow: hidden;
         }
 
-        /* --- TELAS --- */
-        #screen-1 { display: flex; flex-direction: column; align-items: center; text-align: center; }
-        #screen-2 { display: none; width: 100vw; height: 100vh; flex-direction: row; }
+        /* --- BOTÃO DE MÚSICA --- */
+        #music-control {
+            position: fixed; top: 20px; right: 20px; z-index: 1000;
+            background: #9b6ccf; color: white; border: 2px solid #ff33cc;
+            padding: 10px; border-radius: 50%; width: 50px; height: 50px;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            font-size: 20px; transition: 0.3s;
+        }
+        #music-control:hover { transform: scale(1.1); background: #ff33cc; }
 
-        /* TELA 1 */
+        /* --- TELA 1: INICIAL --- */
+        #screen-1 { display: flex; flex-direction: column; align-items: center; text-align: center; }
         .logo-text { font-size: 100px; color: #9b6ccf; }
         .wave-separator {
             width: 180px; height: 45px; background-color: #ff33cc; margin: 10px auto 40px auto;
             clip-path: polygon(0% 20%, 25% 0%, 50% 20%, 75% 0%, 100% 20%, 100% 80%, 75% 100%, 50% 80%, 25% 100%, 0% 80%);
         }
-        .system-label { font-size: 28px; color: #b388eb; }
+        .system-label { font-size: 28px; color: #b388eb; text-transform: uppercase; }
         .system-label b { color: #ff007f; }
         .detectives-names { font-size: 55px; color: #ff75c3; margin: 20px 0; }
         .location-info { font-size: 32px; color: #6347d1; margin-bottom: 40px; }
@@ -41,40 +45,67 @@
             background-color: #9b6ccf; color: #26c4f5; font-size: 40px; padding: 10px 80px;
             border: none; border-radius: 30px; cursor: pointer; transition: 0.3s;
         }
-        #btn-avancar:hover { transform: scale(1.05); filter: brightness(1.1); }
+        #btn-avancar:hover { transform: scale(1.1); filter: brightness(1.1); }
 
-        /* TELA 2 (SISTEMA) */
+        /* --- TELA 2: INTERFACE DO SISTEMA --- */
+        #screen-2 { display: none; width: 100vw; height: 100vh; flex-direction: row; }
+
+        /* SIDEBAR */
         .sidebar {
-            width: 300px; background-color: #7d4db3; color: white;
+            width: 320px; background-color: #7d4db3; color: white;
             display: flex; flex-direction: column; padding: 20px; border-right: 5px solid #ff33cc;
         }
-        .notes-list { flex-grow: 1; overflow-y: auto; list-style: none; margin-top: 20px; }
+        .type-selector {
+            background: rgba(0,0,0,0.2); padding: 10px; border-radius: 10px; margin-bottom: 20px;
+        }
+        .btn-type {
+            background: #9b6ccf; border: 2px solid #ff33cc; color: white;
+            padding: 5px 12px; cursor: pointer; font-size: 14px; border-radius: 5px; margin: 2px;
+        }
+        .btn-type.active { background: #ff33cc; font-weight: bold; }
+        .notes-list { flex-grow: 1; overflow-y: auto; list-style: none; text-align: left; }
         .note-item { 
             background: rgba(255, 255, 255, 0.1); padding: 10px; margin-bottom: 10px; 
             border-radius: 8px; cursor: pointer; font-size: 16px; border-left: 4px solid #26c4f5;
         }
-        .btn-add {
-            background-color: #ff33cc; color: white; font-size: 40px; border: none;
-            border-radius: 50%; width: 60px; height: 60px; cursor: pointer; margin: 10px auto;
-        }
 
-        .notepad-area { flex-grow: 1; padding: 40px; display: flex; flex-direction: column; align-items: center; }
+        /* ÁREA DE TRABALHO */
+        .work-area { flex-grow: 1; padding: 40px; display: flex; flex-direction: column; align-items: center; }
         .notepad-container {
             width: 100%; max-width: 800px; background-color: #9b6ccf; padding: 30px;
             border-radius: 15px; box-shadow: 10px 10px 0px #ff33cc;
         }
         .notepad-textarea {
             width: 100%; height: 400px; background: transparent; border: none; outline: none;
-            color: white; font-family: 'Aloja', sans-serif; font-size: 30px; line-height: 45px;
+            color: white; font-family: 'Aloja', sans-serif; font-size: 28px; line-height: 45px;
             resize: none; background-image: linear-gradient(#ff007f 1px, transparent 1px); background-size: 100% 45px;
         }
-        #btn-baixar {
+
+        #spreadsheet-view { display: none; width: 100%; max-width: 900px; }
+        .dhl-table {
+            width: 100%; border-collapse: collapse; background: #9b6ccf; 
+            box-shadow: 10px 10px 0px #ff33cc; border-radius: 10px; overflow: hidden;
+        }
+        .dhl-table th { background: #7d4db3; color: #26c4f5; padding: 15px; border: 1px solid #ff007f; }
+        .dhl-table td { border: 1px solid #ff007f; padding: 10px; }
+        .dhl-table input {
+            width: 100%; background: transparent; border: none; color: white;
+            font-family: 'Aloja', sans-serif; font-size: 20px; outline: none; text-align: center;
+        }
+
+        #btn-main-action {
             margin-top: 30px; background-color: #26c4f5; color: #9b6ccf; font-size: 30px;
-            padding: 10px 50px; border: none; border-radius: 20px; cursor: pointer; font-weight: bold;
+            padding: 10px 60px; border: none; border-radius: 25px; cursor: pointer; font-weight: bold;
         }
     </style>
 </head>
 <body>
+
+    <audio id="bg-music" loop>
+        <source src="Design-sem-nome.mp3" type="audio/mpeg">
+    </audio>
+
+    <button id="music-control" title="Ligar/Desligar Música">🔇</button>
 
     <div id="screen-1">
         <div class="logo-text">D.H.L</div>
@@ -88,79 +119,138 @@
     <div id="screen-2">
         <div class="sidebar">
             <h2>ARQUIVOS</h2>
-            <ul id="notesList" class="notes-list"></ul>
-            <button class="btn-add" id="btn-nova-nota">+</button>
-        </div>
-        <div class="notepad-area">
-            <div class="notepad-container">
-                <textarea id="noteInput" class="notepad-textarea" placeholder="Digite as pistas..."></textarea>
+            <div class="type-selector">
+                <p style="font-size: 12px; margin-bottom: 5px; color: #fff;">ALTERAR TIPO:</p>
+                <button class="btn-type active" id="btn-docx">.DOCX</button>
+                <button class="btn-type" id="btn-xlsx">.XLSX</button>
             </div>
-            <button id="btn-baixar">BAIXAR DOCX</button>
+            <ul id="notesList" class="notes-list"></ul>
+            <button style="background:#ff33cc; color:white; border:none; border-radius:50%; width:50px; height:50px; font-size:30px; cursor:pointer; margin-top:10px;" onclick="limparTudo()">+</button>
+        </div>
+
+        <div class="work-area">
+            <div id="note-view" class="notepad-container">
+                <textarea id="noteInput" class="notepad-textarea" placeholder="Escreva o relatório aqui..."></textarea>
+            </div>
+
+            <div id="spreadsheet-view">
+                <table class="dhl-table" id="dhlTable">
+                    <thead>
+                        <tr>
+                            <th>DATA</th>
+                            <th>SUSPEITO</th>
+                            <th>EVIDÊNCIA</th>
+                            <th>LOCAL</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+                        <tr><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+                        <tr><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+                        <tr><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+                        <tr><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <button id="btn-main-action">BAIXAR .DOCX</button>
         </div>
     </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            let modoAtual = 'DOCX';
             const btnAvancar = document.getElementById('btn-avancar');
-            const btnBaixar = document.getElementById('btn-baixar');
-            const btnNovaNota = document.getElementById('btn-nova-nota');
-            const screen1 = document.getElementById('screen-1');
-            const screen2 = document.getElementById('screen-2');
-            const noteInput = document.getElementById('noteInput');
+            const btnMainAction = document.getElementById('btn-main-action');
+            const noteView = document.getElementById('note-view');
+            const sheetView = document.getElementById('spreadsheet-view');
             const notesList = document.getElementById('notesList');
+            const music = document.getElementById('bg-music');
+            const musicBtn = document.getElementById('music-control');
+            
+            let arquivosSalvos = [];
 
-            let historicoLocal = [];
+            // Controle de Música
+            musicBtn.addEventListener('click', () => {
+                if (music.paused) {
+                    music.play();
+                    musicBtn.innerText = '🔊';
+                } else {
+                    music.pause();
+                    musicBtn.innerText = '🔇';
+                }
+            });
 
-            // --- LÓGICA DE ACESSO COM SENHA ---
+            // Senha e Tela Inicial
             btnAvancar.addEventListener('click', () => {
-                const senhaDigitada = prompt("DIGITE A SENHA DE ACESSO:");
-                
-                if (senhaDigitada === "1451") {
-                    screen1.style.display = 'none';
-                    screen2.style.display = 'flex';
+                const senha = prompt("DIGITE A SENHA DE ACESSO:");
+                if (senha === "1451") {
+                    document.getElementById('screen-1').style.display = 'none';
+                    document.getElementById('screen-2').style.display = 'flex';
+                    // Tenta tocar a música ao entrar no sistema (alguns navegadores exigem interação)
+                    if(music.paused) {
+                         music.play().then(() => musicBtn.innerText = '🔊').catch(() => console.log("Aguardando clique para som"));
+                    }
                 } else {
                     alert("SENHA INCORRETA! ACESSO NEGADO.");
                 }
             });
 
-            // --- FUNÇÃO PARA BAIXAR DOCX ---
-            btnBaixar.addEventListener('click', () => {
-                const texto = noteInput.value.trim();
-                if (texto === "") return alert("Escreva algo antes de baixar!");
-
-                const doc = new docx.Document({
-                    sections: [{
-                        children: [
-                            new docx.Paragraph({
-                                children: [new docx.TextRun({ text: "D.H.L - RELATÓRIO OFICIAL", bold: true, size: 32, color: "9b6ccf" })],
-                                spacing: { after: 400 },
-                            }),
-                            new docx.Paragraph({ children: [new docx.TextRun(texto)], spacing: { before: 200 } }),
-                        ],
-                    }],
-                });
-
-                docx.Packer.toBlob(doc).then((blob) => {
-                    saveAs(blob, "Investigacao-DHL.docx");
-                    historicoLocal.push(texto);
-                    atualizarLista();
-                });
+            // Troca de Modo (.DOCX / .XLSX)
+            document.getElementById('btn-docx').addEventListener('click', function() {
+                modoAtual = 'DOCX';
+                this.classList.add('active');
+                document.getElementById('btn-xlsx').classList.remove('active');
+                noteView.style.display = 'block'; sheetView.style.display = 'none';
+                btnMainAction.innerText = 'BAIXAR .DOCX';
             });
 
-            btnNovaNota.addEventListener('click', () => {
-                noteInput.value = "";
-                noteInput.focus();
+            document.getElementById('btn-xlsx').addEventListener('click', function() {
+                modoAtual = 'XLSX';
+                this.classList.add('active');
+                document.getElementById('btn-docx').classList.remove('active');
+                noteView.style.display = 'none'; sheetView.style.display = 'block';
+                btnMainAction.innerText = 'BAIXAR .XLSX';
             });
 
-            function atualizarLista() {
+            // Ação de Baixar
+            btnMainAction.addEventListener('click', () => {
+                if (modoAtual === 'DOCX') {
+                    const texto = document.getElementById('noteInput').value;
+                    if(!texto) return alert("Escreva algo!");
+                    const doc = new docx.Document({
+                        sections: [{ children: [new docx.Paragraph({ text: "D.H.L - RELATÓRIO", bold: true, size: 30 }), new docx.Paragraph(texto)] }]
+                    });
+                    docx.Packer.toBlob(doc).then(blob => {
+                        saveAs(blob, "Relatorio-DHL.docx");
+                        arquivosSalvos.push("DOC: " + texto.substring(0,10) + "...");
+                        atualizarMenu();
+                    });
+                } else {
+                    const table = document.getElementById("dhlTable");
+                    const wb = XLSX.utils.book_new();
+                    const rows = Array.from(table.querySelectorAll('tr'));
+                    const data = rows.map(row => Array.from(row.querySelectorAll('th, input')).map(el => el.value || el.innerText));
+                    const ws = XLSX.utils.aoa_to_sheet(data);
+                    XLSX.utils.book_append_sheet(wb, ws, "Investigacao");
+                    XLSX.writeFile(wb, "Planilha-DHL.xlsx");
+                    arquivosSalvos.push("PLANILHA: " + new Date().toLocaleTimeString());
+                    atualizarMenu();
+                }
+            });
+
+            function atualizarMenu() {
                 notesList.innerHTML = "";
-                historicoLocal.forEach((nota, index) => {
+                arquivosSalvos.forEach(item => {
                     const li = document.createElement('li');
-                    li.className = 'note-item';
-                    li.innerText = `Caso #${index + 1}`;
-                    li.onclick = () => { noteInput.value = nota; };
+                    li.className = 'note-item'; li.innerText = item;
                     notesList.appendChild(li);
                 });
+            }
+
+            window.limparTudo = function() {
+                document.getElementById('noteInput').value = "";
+                document.querySelectorAll('input').forEach(i => i.value = "");
             }
         });
     </script>
